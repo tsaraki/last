@@ -1,0 +1,59 @@
+function LastFunction {
+[CmdletBinding(PositionalBinding=$false)]
+param (
+    [string] $l,
+    
+    [string] $p,
+    
+    [string] $v,
+
+    [switch] $b
+)
+    $data = @('', '', '');
+
+    $data_path = "D:/code/ps/last_var.txt";
+
+    $idx = 0;
+    foreach($line in Get-Content $data_path) {
+        if ($line -match $regex) {
+            $data[$idx] = $line;
+            $idx += 1;
+        }
+    }
+    
+    $set_return = $false
+    if ($l -ne "") {
+        $data[0] = $l
+        echo "last used lang set to $($l)";
+        Set-Variable -Name set_return -Value $true;
+    }
+    if ($p -ne "") {
+        $data[1] = $p
+        echo "last used project set to $($p)";
+        Set-Variable -Name set_return -Value $true;
+    }
+    if ($v -ne "") {
+        $data[2] = $v
+        echo "last used version set to $($v)";
+        Set-Variable -Name set_return -Value %true;
+    }
+    if ($set_return) {
+
+        $new_data = "$($data[0])`n$($data[1])`n$($data[2])"
+    
+        $new_data | Out-File -FilePath $data_path
+        return;
+    }
+
+    if ($b) {
+        cd D:/code/$($data[0])/$($data[1])/$($data[2]);
+        if ($($data[0]) -eq "zig") {
+            echo "building";
+            zig build;
+        }
+        
+    }
+    cd D:/code/$($data[0])/$($data[1])/$($data[2]);
+};
+
+New-Alias -Force last LastFunction
