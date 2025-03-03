@@ -1,59 +1,98 @@
 function LastFunction {
 [CmdletBinding(PositionalBinding=$false)]
 param (
+    
+    [string] $d,
     [string] $l,
-    
     [string] $p,
-    
     [string] $v,
-
     [switch] $b
 )
-    $data = @('', '', '');
 
-    $data_path = "D:/code/ps/last_var.txt";
-
-    $idx = 0;
-    foreach($line in Get-Content $data_path) {
-        if ($line -match $regex) {
-            $data[$idx] = $line;
-            $idx += 1;
+    $data = @('', '', '', '');
+       
+    if (Test-Path $Env:APPDATA/last/data.txt) {
+        $idx = 0;
+        foreach($line in Get-Content $Env:APPDATA/last/data.txt) {
+            if ($line -match $regex) {
+                $data[$idx] = $line;
+                $idx += 1;
+            }
         }
+        if ($idx -ne 4) {
+            echo "data.txt should have 4 lines`nlang`nproject`nversion`ncode directory";
+            return;
+        }
+    } else {
+        New-Item -Path $Env:APPDATA/last/data.txt -Force
+        echo "data.txt created";
+        $new_data = "none`nnone`nnone`nnone"
+    
+        $new_data | Out-File -FilePath $Env:APPDATA/last/data.txt
+        return;
     }
     
     $set_return = $false
-    if ($l -ne "") {
+    
+    if (($l -ne "") -or ($l -eq "none")) {
         $data[0] = $l
         echo "last used lang set to $($l)";
         Set-Variable -Name set_return -Value $true;
     }
-    if ($p -ne "") {
+    if (($p -ne "") -or ($p -eq "none")) {
         $data[1] = $p
         echo "last used project set to $($p)";
         Set-Variable -Name set_return -Value $true;
     }
-    if ($v -ne "") {
+    if (($v -ne "") -or ($v -eq "none")) {
         $data[2] = $v
         echo "last used version set to $($v)";
-        Set-Variable -Name set_return -Value %true;
+        Set-Variable -Name set_return -Value $true;
+    }
+    if (($d -ne "") -or ($d -eq "none")) {
+        $data[3] = $d
+        echo "last code directory set to $($d)";
+        Set-Variable -Name set_return -Value $true;
     }
     if ($set_return) {
 
-        $new_data = "$($data[0])`n$($data[1])`n$($data[2])"
+        $new_data = "$($data[0])`n$($data[1])`n$($data[2])`n$($data[3])"
     
-        $new_data | Out-File -FilePath $data_path
+        $new_data | Out-File -FilePath $Env:APPDATA/last/data.txt
         return;
     }
 
+    $is_data_invalid = $false
+    if (($($data[0]) -eq "") -or ($($data[0]) -eq "none")) {
+        echo "last language doesnt set, use last -l 'lang'"
+        Set-Variable -Name is_data_invalid -Value $true;
+    }
+    if (($($data[1]) -eq "") -or ($($data[1]) -eq "none")) {
+        echo "last project doesnt set, use last -p 'project'"
+        Set-Variable -Name is_data_invalid -Value $true;
+    }
+    if (($($data[2]) -eq "") -or ($($data[2]) -eq "none")) {
+        echo "last version doesnt set, use last -v 'version'"
+        Set-Variable -Name is_data_invalid -Value $true;
+    }
+    if (($($data[3]) -eq "") -or ($($data[3]) -eq "none")) {
+        echo "last code directory doesnt set, use last -d 'path/to/your/code/directory'"
+        Set-Variable -Name is_data_invalid -Value $true;
+    }
+
+    if ($is_data_invalid) {
+        return;
+    }
+
+    $location = "$($data[3])/$($data[0])/$($data[1])/$($data[2])";
+    cd $location;
     if ($b) {
-        cd D:/code/$($data[0])/$($data[1])/$($data[2]);
         if ($($data[0]) -eq "zig") {
             echo "building";
             zig build;
         }
         
     }
-    cd D:/code/$($data[0])/$($data[1])/$($data[2]);
 };
 
 New-Alias -Force last LastFunction
