@@ -27,13 +27,13 @@ so we will not support it
 last command have this semver template "v1-feature", if feature is not set, default is dev
 your dir tree will be look like:
 
--- lang
--- -- project
--- -- -- v1-dev
--- -- -- v1-tokenizer
--- -- -- v1-parser
--- -- -- v1-merged (not implemented yet)
--- -- -- v2-dev
+- lang
+  - project
+    - v1-dev
+    - v1-tokenizer
+    - v1-parser
+    - v1-merged (not implemented yet)
+    - v2-dev
 
 #### patch version is feature
 
