@@ -1,201 +1,139 @@
-function LastFunction {
-[CmdletBinding(PositionalBinding=$false)]
-param (
-    
-    [string] $d,
-    [string] $l,
-    [string] $p,
-    [string] $v,
-    [string] $feature,
-    [switch] $b,
-    [switch] $next,
-    [switch] $reconfig,
-    [switch] $init
+[hashtable]$stores = @{}
+
+[hashtable]$projs = @{}
+
+[hashtable]$langs = @{}
+
+#root|lang|proj|version|feature
+$last = @('', '', '', '', '')
+$global:store = ""
+$global:editor = ""
+$global:open = ""
+$global:open_subdir = ""
+
+function Last-Parse-Line {
+[CmdletBinding()]
+Param ([parameter(Position=0)][string]$action,
+	   [parameter(Position=1)][string]$prop,
+							  [string]$v
 )
-    if ($reconfig) {
-        Last-Reconfig
-        return;
+
+    if (($action -eq "") -and ($prop -eq "") -and ($v -eq "")) {
+        Last-Set-Location
     }
 
-    $data = @('', '', '', '', '');
-       
-    if (Test-Path $Env:APPDATA/last/data.txt) {
-        $data = Last-Load $data
-    } else {
-        Last-Reconfig
-        return;
+    if ($action -eq "config") {
+        Invoke-Expression "$editor $Env:APPDATA/last/config.txt"
     }
 
-    $set_return = $false
-    
-    if ($l -ne "") {
-        $data[0] = $l
-        echo "last used lang set to $($l)";
-        Set-Variable -Name set_return -Value $true;
-    }
-    if ($p -ne "") {
-        $data[1] = $p
-        echo "last used project set to $($p)";
-        Set-Variable -Name set_return -Value $true;
-    }
-    if ($v -ne "") {
-        $data[2] = $v
-        echo "last used version set to $($v)";
-        Set-Variable -Name set_return -Value $true;
-    }
-    if ($d -ne "") {
-        $data[3] = $d
-        echo "last code directory set to $($d)";
-        Set-Variable -Name set_return -Value $true;
-    }
-    if ($feature -ne "") {
-        $data[4] = $feature
-        echo "last code directory set to $($d)";
-        Set-Variable -Name set_return -Value $true;
-    }
-    if ($set_return) {
-
-        $new_data = "$($data[0])`n$($data[1])`n$($data[2])`n$($data[3])`n$($data[4])"
-    
-        $new_data | Out-File -FilePath $Env:APPDATA/last/data.txt
-        return;
-    }
-
-    $is_data_invalid = $false
-    if (($($data[0]) -eq "") -or ($($data[0]) -eq "none")) {
-        echo "last language doesnt set, use last -l 'lang'"
-        Set-Variable -Name is_data_invalid -Value $true;
-    }
-    if (($($data[1]) -eq "") -or ($($data[1]) -eq "none")) {
-        echo "last project doesnt set, use last -p 'project'"
-        Set-Variable -Name is_data_invalid -Value $true;
-    }
-    if (($($data[2]) -eq "") -or ($($data[2]) -eq "none")) {
-        echo "last version doesnt set, use last -v 'version'"
-        Set-Variable -Name is_data_invalid -Value $true;
-    }
-    if (($($data[3]) -eq "") -or ($($data[3]) -eq "none")) {
-        echo "last code directory doesnt set, use last -d 'path/to/your/code/directory'"
-        Set-Variable -Name is_data_invalid -Value $true;
-    }
-    if (($($data[4]) -eq "") -or ($($data[4]) -eq "none")) {
-        echo "last feature doesnt set, use last -feature 'feature name'"
-        echo "used 'dev suffix'";
-        $data[4] = "dev";
-    }
-
-    if ($is_data_invalid) {
-        return;
-    }
-    
-    if ($init) {
-        Last-Proj-Init $data
-    }
-
-    $dir_loc = "$($data[3])/";
-    if (!(Test-Path -Path $dir_loc)) {
-        echo "your code directory doesnt exist"
-        return;
-    }
-    
-    $dir_lang = "$($data[3])/$($data[0])/";
-    if (!(Test-Path -Path $dir_lang)) {
-        echo "your lang directory doesnt exist"
-        return;
-    }
-    
-    $dir_proj = "$($data[3])/$($data[0])/$($data[1])/";
-    if (!(Test-Path -Path $dir_proj)) {
-        echo "your project directory doesnt exist"
-        return;
-    }
-    
-    $dir_ver = "$($data[3])/$($data[0])/$($data[1])/v$($data[2])-$($data[4])";
-    if (!(Test-Path -Path $dir_ver)) {
-        echo "your project directory doesnt exist"
-        return;
-    }
-
-    $location = "$($data[3])/$($data[0])/$($data[1])/v$($data[2])-$($data[4])";
-    cd $location;
-    if ($b) {
-        if ($($data[0]) -eq "zig") {
-            echo "building";
-            zig build;
+    if ($action -eq "open") {
+        if ($editor -eq "hx") {
+            Last-Set-Location
+            if ($global:open_subdir -ne "none") {
+                cd $global:open_subdir
+            }
+            Invoke-Expression "$editor $open"
         }
+    }
+
+	# echo "$action $prop $v"
+}
+
+function Last-Set-Location {
+    Set-Location -Path "$($last[0])/$($last[1])/$($last[2])/v$($last[3])-$($last[4])/"
+}
+
+
+function Last-Config-Parse {
+
+	$config_check = Last-Config-Check
+	if ($config_check) {
+		echo "Config just created"
+		return
+	}
+	
+	$config_file = Get-Content -Path $Env:APPDATA/last/config.txt
+
+    $last_count = 0
+	foreach($line in $config_file) {
+		if ($line -match $regex) {
+			$line_arr = $line.split(" ")
+
+			if ($($line_arr[0]) -eq "store") {
+                $stores[$($line_arr[1])] = $($line_arr[2]) 
+                if ($($line_arr[3]) -eq "default") {
+                    $store = $($line_arr[1])
+                }
+			}
+
+            if ($($line_arr[0]) -eq "proj") {
+                $proj_name = $($line_arr[1])
+                $proj_ver = $($line_arr[2])
+                $proj_feature = $($line_arr[3])
+
+                if (!($projs.ContainsKey($proj_name))) {
+                    $projs[$proj_name] = [hashtable]@{}
+                }
+                $projs[$proj_name][$proj_ver] = $proj_feature
+            }
+
+            if ($($line_arr[0]) -eq "lang") {
+                $langs[$($line_arr[1])] = $($line_arr[2])
+            }
+
+            if($($line_arr[0]) -eq "last_") {
+                if ($last_count -eq 0) {
+                    $root = (Get-PSDrive | Where-Object {$_.Description -eq $store}).Root
+                    
+                    $store_loc = $stores[$store]
+                    $last[0] = "${root}$store_loc"
+                    $last[1] = $($line_arr[1])
+                    $last[2] = $($line_arr[2])
+                    $last[3] = $($line_arr[3])
+                    $last[4] = $($line_arr[4])
+                    $last_count = 1
+                }
+
+            }
+
+            if ($($line_arr[0]) -eq "editor") {
+                $global:editor = $($line_arr[1]) 
+            }
+
+            if ($($line_arr[0]) -eq "open") {
+                $global:open = "$($line_arr[2]) $($line_arr[3]) --vsplit"
+                $global:open_subdir = "$($line_arr[1])"
+            }
+		}
+
         
-    }
-    if ($next) {
-        $version_int = [convert]::ToInt32($($data[2]), 10) + 1;
-        $location = "$($data[3])/$($data[0])/$($data[1])/";
-        Set-Location -Path $location;
-        $data[2] = $version_int.ToString();
-        $next_location = "$location/v$($data[2])-$($data[4])"; 
-        if (!(Test-Path -Path $next_location)) {
-            mkdir "v$($data[2])-$($data[4])";
-        }
-        cd "v$($data[2])-$($data[4])";
-    }
+	}
 
-
-};
-
-New-Alias -Force last LastFunction
-
-function Last-Reconfig {
-    New-Item -Path $Env:APPDATA/last/data.txt -Force
-    echo "data.txt reconfigured";
-    $new_data = "none`nnone`nnone`nnone`nnone"
-    
-    $new_data | Out-File -FilePath $Env:APPDATA/last/
 }
 
-function Last-Load {
-param (
-    [array] $data
-)
-    $idx = 0;
-    foreach($line in Get-Content $Env:APPDATA/last/data.txt) {
-        if ($line -match $regex) {
-            $data[$idx] = $line;
-            $idx += 1;
-        }
-    }
-    if ($idx -ne 5) {
-        echo "data.txt should have 5 lines`nlang`nproject`nversion`ncode directory`nfeature";
-        return;
-    }
-    
-    return $data
+function Last-Config-Save {
+    #to rewrite last
+    Set-Content -Path $Env:APPDATA/last/config.txt -Value (get-content -Path $Env:APPDATA/last.config.txt | Select-String -Pattern 'last_' -NotMatch)
+    Out-File -Path $Env:APPDATA/last/config.txt -Append -Value "last_ $($last[0]) $($last[1]) $($last[2]) $($last[3])" 
 }
 
-function Last-Proj-Init {
-param (
-    [array] $data
-)
-    $dir_loc = "$($data[3])/";
-    if (!(Test-Path -Path $dir_loc)) {
-        echo "your code directory doesnt exist"
-        return;
-    }
-    
-    $dir_lang = "$($data[3])/$($data[0])/";
-    if (!(Test-Path -Path $dir_lang)) {
-        echo "your lang directory doesnt exist"
-        return;
-    }
-    
-    $dir_proj = "$($data[3])/$($data[0])/$($data[1])/";
-    if (!(Test-Path -Path $dir_proj)) {
-        Set-Location -Path $dir_lang
-        mkdir "$($data[1])";
-    }
-    
-    $dir_ver = "$($data[3])/$($data[0])/$($data[1])/v$($data[2])-$($data[4])";
-    if (!(Test-Path -Path $dir_ver)) {
-        Set-Location -Path $dir_proj;
-        mkdir "v$($data[2])-$($data[4])";
-        cd "v$($data[2])-$($data[4])";
-    }
-    
+function Last-Config-Check {
+	$ret = $false
+	if (!(Test-Path $Env:APPDATA/last)) {
+		Set-Location -Path $Env:APPDATA
+		New-Item -ItemType Derectory -Path $Env:APPDATA\last
+		Set-Variable -Name ret -Value $true
+	}
+
+	if (!(Test-Path $Env:APPDATA/last/config.txt)) {
+		Set-Location -Path $Env:APPDATA/last
+		New-Item -ItemType File -Path $Env:APPDATA/last -Name "config.txt"
+		Set-Variable -Name ret -Value $true
+	}
+
+	return $ret	
 }
+
+New-Alias -Force last Last-Parse-Line
+Last-Config-Parse
+
