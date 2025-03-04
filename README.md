@@ -59,15 +59,15 @@ last would have git action, so it will be calculated automatically
 
 creating powershell profile if it not set
 
-'''
+```
 if (!(Test-Path -Path $profile)) {
   New-Item -ItemType File -Path $PROFILE -Force
 }
-'''
+```
 
 clonning repository and adding code to $profile
-'''
+```
 git clone https://github.com/tsaraki/last
 cd last
 cat last.ps1 >> $profile
-'''
+```
