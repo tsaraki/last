@@ -43,15 +43,15 @@ last would have git action, so it will be calculated automatically
 
   #### last
 
-  cd path/to/your/last/project
+   - cd path/to/your/last/project
 
   #### last config
 
-  cd APPDATA/last
-  editor config.txt
+   - cd APPDATA/last
+   - editor config.txt
 
   #### last open
 
-  cd path/to/you/last/project
-  editor subdir file1 file2 --vsplit
+   - cd path/to/you/last/project
+   - editor subdir file1 file2 --vsplit
   
