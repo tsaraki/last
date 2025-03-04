@@ -22,11 +22,11 @@ Param ([parameter(Position=0)][string]$action,
         Last-Set-Location
     }
 
-    if ($action -eq "config") {
+    if (($action -eq "config") -and ($prop -eq "") -and ($v -eq "")) {
         Invoke-Expression "$editor $Env:APPDATA/last/config.txt"
     }
 
-    if ($action -eq "open") {
+    if (($action -eq "open") -and ($prop -eq "") -and ($v -eq "")) {
         if ($editor -eq "hx") {
             Last-Set-Location
             if ($global:open_subdir -ne "none") {
@@ -34,6 +34,24 @@ Param ([parameter(Position=0)][string]$action,
             }
             Invoke-Expression "$editor $open"
         }
+    }
+
+    if (($action -eq "help") -and ($prop -eq "") -and ($v -eq "")) {
+        echo 'info: Usage: last [action] [prop] [-v "value"]'
+        echo ''
+        echo 'Versioning: template "v1-feature"'
+        echo 'major is up to user'
+        echo 'minor is just number'
+        echo 'patch is a feature'
+        echo ''
+        echo 'Commands:'
+        echo ''
+        echo 'last               cd path/of/proj'
+        echo 'last config        editor APPDATA/last/config.txt'
+        echo 'last open          cd path/of/proj'
+        echo '                   editor subdir? pathfile1 pathfile2 --vsplit'
+        echo 'last help          show this help'
+        
     }
 
 	# echo "$action $prop $v"
