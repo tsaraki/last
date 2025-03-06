@@ -4,6 +4,8 @@
 
 [hashtable]$langs = @{}
 
+[hashtable]$lasts = @{}
+
 #root|lang|proj|version|feature
 $last = @('', '', '', '', '')
 $global:store = ""
@@ -19,7 +21,7 @@ Param ([parameter(Position=0)][string]$action,
 )
 
     if (($action -eq "") -and ($prop -eq "") -and ($v -eq "")) {
-        Last-Set-Location
+        Last-Set-Location $last
     }
 
     if (($action -eq "config") -and ($prop -eq "") -and ($v -eq "")) {
@@ -36,6 +38,11 @@ Param ([parameter(Position=0)][string]$action,
         }
     }
 
+    if ($action -eq "set") {
+        Last-Set-Action $prop $v
+    }
+    
+
     if (($action -eq "help") -and ($prop -eq "") -and ($v -eq "")) {
         echo 'info: Usage: last [action] [prop] [-v "value"]'
         echo ''
@@ -51,14 +58,23 @@ Param ([parameter(Position=0)][string]$action,
         echo 'last open          cd path/of/proj'
         echo '                   editor subdir? pathfile1 pathfile2 --vsplit'
         echo 'last help          show this help'
+        echo ''
+        echo 'last [proj]        cd path/of/proj (proj name should be stored in config)'
         
+    }
+
+    if (($action -ne "") -and ($prop -eq "") -and ($v -eq "")) {
+        Last-Set-Last $action
     }
 
 	# echo "$action $prop $v"
 }
 
 function Last-Set-Location {
-    Set-Location -Path "$($last[0])/$($last[1])/$($last[2])/v$($last[3])-$($last[4])/"
+Param (
+    [array]$last_local
+)
+    Set-Location -Path "$($last_local[0])/$($last_local[1])/$($last_local[2])/v$($last_local[3])-$($last_local[4])/"
 }
 
 
@@ -72,7 +88,6 @@ function Last-Config-Parse {
 	
 	$config_file = Get-Content -Path $Env:APPDATA/last/config.txt
 
-    $last_count = 0
 	foreach($line in $config_file) {
 		if ($line -match $regex) {
 			$line_arr = $line.split(" ")
@@ -100,17 +115,22 @@ function Last-Config-Parse {
             }
 
             if($($line_arr[0]) -eq "last_") {
-                if ($last_count -eq 0) {
                     $root = (Get-PSDrive | Where-Object {$_.Description -eq $store}).Root
+
+                    $last_local = @('', '', '', '', '')
                     
                     $store_loc = $stores[$store]
-                    $last[0] = "${root}$store_loc"
-                    $last[1] = $($line_arr[1])
-                    $last[2] = $($line_arr[2])
-                    $last[3] = $($line_arr[3])
-                    $last[4] = $($line_arr[4])
-                    $last_count = 1
-                }
+                    $last_local[0] = "${root}$store_loc"
+                    $last_local[1] = $($line_arr[1])
+                    $last_local[2] = $($line_arr[2])
+                    $last_local[3] = $($line_arr[3])
+                    $last_local[4] = $($line_arr[4])
+
+                    $lasts[$($line_arr[2])] = $last_local
+                    if ($($line_arr[5]) -eq "1") {
+                        $global:last = $last_local
+                    }
+                    
 
             }
 
@@ -150,6 +170,17 @@ function Last-Config-Check {
 	}
 
 	return $ret	
+}
+
+function Last-Set-Last {
+Param (
+    [string]$action
+)
+
+    if ($lasts.ContainsKey($action)) {
+        Last-Set-Location $($lasts[$action])
+    }
+    
 }
 
 New-Alias -Force last Last-Parse-Line
