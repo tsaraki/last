@@ -35,7 +35,7 @@ your dir tree will be look like:
     - v1-merged (not implemented yet)
     - v2-dev
 
-### patch version is feature
+### patch version is a feature
 
 last would have git action, so it will be calculated automatically
 
@@ -52,22 +52,22 @@ last would have git action, so it will be calculated automatically
 
   ### last open
 
-   - cd path/to/you/last/project
-   - editor subdir file1 file2 --vsplit
+   - cd path/to/your/last/project
+   - editor subdir? filepath1 filepath2 --vsplit
   
 ## usage
 
 creating powershell profile if it not set
 
-'''
+```
 if (!(Test-Path -Path $profile)) {
   New-Item -ItemType File -Path $PROFILE -Force
 }
-'''
+```
 
 clonning repository and adding code to $profile
-'''
+```
 git clone https://github.com/tsaraki/last
 cd last
 cat last.ps1 >> $profile
-'''
+```
