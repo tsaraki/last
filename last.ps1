@@ -41,6 +41,10 @@ Param ([parameter(Position=0)][string]$action,
     if ($action -eq "set") {
         Last-Set-Action $prop $v
     }
+
+    if ($action -eq "list") {
+        Last-List
+    }
     
 
     if (($action -eq "help") -and ($prop -eq "") -and ($v -eq "")) {
@@ -63,8 +67,8 @@ Param ([parameter(Position=0)][string]$action,
         
     }
 
-    if (($action -ne "") -and ($prop -eq "") -and ($v -eq "")) {
-        Last-Set-Last $action
+    if (($action -ne "") -and ($prop -ne "") -and ($v -eq "")) {
+        Last-Set-Last $action $prop
     }
 
 	# echo "$action $prop $v"
@@ -126,7 +130,7 @@ function Last-Config-Parse {
                     $last_local[3] = $($line_arr[3])
                     $last_local[4] = $($line_arr[4])
 
-                    $lasts[$($line_arr[2])] = $last_local
+                    $lasts[@($($line_arr[1]), $($line_arr[2]))] = $last_local
                     if ($($line_arr[5]) -eq "1") {
                         $global:last = $last_local
                     }
@@ -174,13 +178,30 @@ function Last-Config-Check {
 
 function Last-Set-Last {
 Param (
-    [string]$action
+    [string]$action,
+    [string]$prop
 )
 
-    if ($lasts.ContainsKey($action)) {
-        Last-Set-Location $($lasts[$action])
-    }
+    $search = @($action, $prop)
+    foreach ($l in $lasts.GetEnumerator()) {
     
+        $key = $($l.Name)
+        $lang_local = $($key[0])
+        $proj_local = $($key[1])
+
+        if (($lang_local -eq $action) -and ($proj_local -eq $prop)) {
+            Last-Set-Location $($lasts[($action, $prop)])
+        }
+
+    }
+
+}
+
+function Last-List {
+    foreach($l in $lasts.GetEnumerator()) {
+        $last_local = $($l.Value)
+        echo "$($last_local[1])/$($last_local[2])/v$($last_local[3])-$($last_local[4])"
+    }
 }
 
 New-Alias -Force last Last-Parse-Line
