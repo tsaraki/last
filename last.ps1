@@ -189,8 +189,9 @@ Param (
         $lang_local = $($key[0])
         $proj_local = $($key[1])
 
-        if (($lang_local -eq $action) -and ($proj_local -eq $prop)) {
-            Last-Set-Location $($lasts[($action, $prop)])
+        if ((($lang_local -eq $action) -and ($proj_local -eq $prop))) {
+            echo "$($l.Value)"
+            Last-Set-Location $($l.Value)
         }
 
     }
